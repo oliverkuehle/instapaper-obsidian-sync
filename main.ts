@@ -166,8 +166,11 @@ export default class InstapaperSyncPlugin extends Plugin {
 		}
 	}
 
-	/** Adds items (newest-first order) to the note, skipping seen ones; also strips checked items. */
-	async addItems(items: FeedItem[]): Promise<number> {
+	/**
+	 * Adds items (given newest-first) to the note, skipping seen ones; also strips checked items.
+	 * "top" = new saves from the feed; "bottom" = older items from a CSV backfill.
+	 */
+	async addItems(items: FeedItem[], position: "top" | "bottom" = "top"): Promise<number> {
 		const file = await this.getOrCreateNote();
 
 		let added = 0;
@@ -183,7 +186,7 @@ export default class InstapaperSyncPlugin extends Plugin {
 				if (m) this.seenUrls.add(normalizeUrl(m[2]));
 			}
 
-			// Items arrive newest-first and are inserted at the top of each list, so lists read newest → oldest.
+			// Items arrive newest-first; lists read newest → oldest either way.
 			const fresh = items.filter((i) => !this.seenUrls.has(normalizeUrl(i.url)));
 			if (fresh.length === 0) return content;
 
@@ -201,8 +204,9 @@ export default class InstapaperSyncPlugin extends Plugin {
 
 			let out = ensureSection(content, this.settings.articleHeading);
 			out = ensureSection(out, this.settings.videoHeading);
-			out = prependToSection(out, this.settings.videoHeading, videos);
-			out = prependToSection(out, this.settings.articleHeading, articles);
+			const insert = position === "top" ? prependToSection : appendToSection;
+			out = insert(out, this.settings.videoHeading, videos);
+			out = insert(out, this.settings.articleHeading, articles);
 			return out;
 		});
 		await this.savePluginData();
@@ -220,7 +224,7 @@ export default class InstapaperSyncPlugin extends Plugin {
 			if (!file) return;
 			try {
 				const items = parseInstapaperCsv(await file.text());
-				const added = await this.addItems(items);
+				const added = await this.addItems(items, "bottom");
 				new Notice(`Instapaper Sync: imported ${added} of ${items.length} unread link${items.length === 1 ? "" : "s"}.`);
 			} catch (e) {
 				console.error("Instapaper CSV import failed", e);
@@ -376,6 +380,40 @@ function ensureSection(content: string, heading: string): string {
 	if (headingIndex(lines, heading) !== -1) return content;
 	const trimmed = content.replace(/\s+$/, "");
 	return (trimmed ? trimmed + "\n\n" : "") + `## ${heading}\n`;
+}
+
+function appendToSection(content: string, heading: string, newLines: string[]): string {
+	if (newLines.length === 0) return content;
+	const lines = content.split("\n");
+	const h = headingIndex(lines, heading);
+	if (h === -1) return content;
+
+	// Section ends at the next heading (any level) or EOF.
+	let end = lines.length;
+	for (let i = h + 1; i < lines.length; i++) {
+		if (/^#{1,6}\s/.test(lines[i])) {
+			end = i;
+			break;
+		}
+	}
+	// Insert right after the last non-blank line of the section (keeps the list contiguous).
+	let insertAt = h + 1;
+	for (let i = end - 1; i > h; i--) {
+		if (lines[i].trim() !== "") {
+			insertAt = i + 1;
+			break;
+		}
+	}
+	const block = insertAt === h + 1 ? ["", ...newLines] : [...newLines];
+	// Keep a blank line before the next heading.
+	const next = lines[insertAt];
+	if (next !== undefined && /^#{1,6}\s/.test(next)) block.push("");
+	lines.splice(insertAt, 0, ...block);
+	let out = lines.join("\n");
+	// Collapse any accidental 3+ newlines and ensure trailing newline.
+	out = out.replace(/\n{3,}/g, "\n\n");
+	if (!out.endsWith("\n")) out += "\n";
+	return out;
 }
 
 function prependToSection(content: string, heading: string, newLines: string[]): string {

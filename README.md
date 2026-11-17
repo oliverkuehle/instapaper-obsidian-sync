@@ -33,7 +33,7 @@ Read state is **not** sent back to Instapaper, because the RSS feed is read-only
 - Commands:
   - **Sync now**
   - **Remove checked items now**
-  - **Import Instapaper CSV export (Unread only)**: one-time backfill from Instapaper's CSV export; skips links already in the note or already removed.
+  - **Import Instapaper CSV export (Unread only)**: one-time backfill from Instapaper's CSV export. Imported (older) links go at the bottom of each list; links already in the note or already removed are skipped.
 
 ## Setup
 
