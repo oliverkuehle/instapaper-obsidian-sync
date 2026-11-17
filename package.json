@@ -1,0 +1,17 @@
+{
+  "name": "instapaper-obsidian-sync",
+  "version": "0.1.0",
+  "description": "Obsidian plugin that appends your Instapaper Unread links to a note, split into articles and videos.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "dev": "esbuild main.ts --bundle --format=cjs --platform=browser --target=es2020 --external:obsidian --outfile=main.js --sourcemap=inline --watch",
+    "build": "tsc --noEmit && esbuild main.ts --bundle --format=cjs --platform=browser --target=es2020 --external:obsidian --outfile=main.js"
+  },
+  "author": "Oliver Kühle",
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "obsidian": "latest",
+    "typescript": "^5.6.0"
+  }
+}

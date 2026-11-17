@@ -1,0 +1,9 @@
+{
+  "id": "instapaper-sync",
+  "name": "Instapaper Sync",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Appends your Instapaper saved links to a note, split into videos and articles.",
+  "author": "Oliver Kühle",
+  "isDesktopOnly": false
+}
