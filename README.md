@@ -18,7 +18,7 @@ Pulls your Instapaper **Unread** links into a single note (`_INSTAPAPER.md` by d
   ```
 
 - Links on video domains (YouTube, youtu.be, Vimeo, Twitch, Dailymotion, TikTok, Nebula; editable) go under **Videos**. Everything else goes under **Articles**.
-- New items go at the end of each list, oldest first.
+- New items go at the top of each list, so lists read newest → oldest.
 
 ## Marking items as read
 
