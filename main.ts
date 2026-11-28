@@ -177,7 +177,8 @@ export default class InstapaperSyncPlugin extends Plugin {
 		await this.app.vault.process(file, (original) => {
 			// Drop anything already ticked off.
 			const stripped = stripChecked(original);
-			let content = stripped.content;
+			// Drop duplicate links, e.g. after Obsidian Sync merged two devices' additions.
+			let content = dedupeLinks(stripped.content);
 
 			// Anything in the note (or just removed) counts as seen.
 			for (const u of stripped.removedUrls) this.seenUrls.add(normalizeUrl(u));
@@ -333,6 +334,22 @@ function stripChecked(content: string): { content: string; removedUrls: string[]
 		return true;
 	});
 	return { content: kept.join("\n"), removedUrls };
+}
+
+/** Removes repeated link items with the same URL, keeping the first one. */
+function dedupeLinks(content: string): string {
+	const seen = new Set<string>();
+	return content
+		.split("\n")
+		.filter((line) => {
+			const m = line.match(LINK_ITEM_RE);
+			if (!m) return true;
+			const key = normalizeUrl(m[2]);
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		})
+		.join("\n");
 }
 
 function normalizeUrl(url: string): string {
