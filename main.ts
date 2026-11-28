@@ -14,6 +14,8 @@ interface InstapaperSyncSettings {
 	notePath: string;
 	syncIntervalMinutes: number;
 	syncOnStartup: boolean;
+	/** Wait before the startup sync so Obsidian Sync can pull remote changes first. */
+	startupDelaySeconds: number;
 	videoHeading: string;
 	articleHeading: string;
 	videoDomains: string;
@@ -30,6 +32,7 @@ const DEFAULT_SETTINGS: InstapaperSyncSettings = {
 	notePath: "_INSTAPAPER.md",
 	syncIntervalMinutes: 30,
 	syncOnStartup: true,
+	startupDelaySeconds: 20,
 	videoHeading: "Videos",
 	articleHeading: "Articles",
 	videoDomains: [
@@ -82,7 +85,9 @@ export default class InstapaperSyncPlugin extends Plugin {
 		this.addSettingTab(new InstapaperSyncSettingTab(this.app, this));
 
 		this.app.workspace.onLayoutReady(() => {
-			if (this.settings.syncOnStartup) this.sync(false);
+			if (!this.settings.syncOnStartup) return;
+			const id = window.setTimeout(() => this.sync(false), this.settings.startupDelaySeconds * 1000);
+			this.register(() => window.clearTimeout(id));
 		});
 		this.restartInterval();
 	}
@@ -509,6 +514,16 @@ class InstapaperSyncSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(this.plugin.settings.syncOnStartup).onChange(async (v) => {
 					this.plugin.settings.syncOnStartup = v;
+					await this.plugin.savePluginData();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName("Startup delay (seconds)")
+			.setDesc("Wait this long before the startup sync, so Obsidian Sync can pull changes from other devices first.")
+			.addText((t) =>
+				t.setValue(String(this.plugin.settings.startupDelaySeconds)).onChange(async (v) => {
+					this.plugin.settings.startupDelaySeconds = Math.max(0, parseInt(v, 10) || 0);
 					await this.plugin.savePluginData();
 				})
 			);
